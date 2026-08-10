@@ -85,6 +85,11 @@ const App = {
     }
   },
 
+  // Guard: check if 3D rendering is ready
+  isRenderReady() {
+    return this.render && this.render._initialized === true;
+  },
+
   initInput() {
     const canvas = document.getElementById('game-canvas');
 
@@ -352,15 +357,19 @@ const App = {
     // Init tutor with engine
     this.tutor = new AITutor(this.game);
 
-    // Clear render
-    this.render.clearStones();
-    this.render.clearEffects();
+    // Clear render - guard against uninitialized renderer
+    if (this.isRenderReady()) {
+      this.render.clearStones();
+      this.render.clearEffects();
+    }
 
     this.showScreen('game-screen');
-    // Resize after DOM is visible
+    // Resize after DOM is visible - use longer delay for mobile
     setTimeout(() => {
       this.resizeCanvas();
-    }, 50);
+      // Second resize after screen transition completes
+      setTimeout(() => this.resizeCanvas(), 200);
+    }, 100);
     this.updateTurnIndicator();
 
     // If AI moves first
@@ -374,6 +383,7 @@ const App = {
   // ==================== Move Handling ====================
   handleClick(e) {
     if (this.currentScreen !== 'game-screen' || !this.game || this.game.state === 'ended') return;
+    if (!this.isRenderReady()) return;
 
     const pos = this.render.raycast(e.clientX, e.clientY);
     if (!pos) return;
@@ -386,6 +396,7 @@ const App = {
 
   handleHover(e) {
     if (!this.game || this.game.state === 'ended') return;
+    if (!this.isRenderReady()) return;
     const pos = this.render.raycast(e.clientX, e.clientY);
     if (!pos) {
       this.render.hideHover();
@@ -406,12 +417,14 @@ const App = {
     const lastMove = this.game.moveHistory[this.game.moveHistory.length - 1];
     const stoneColor = lastMove.color === 'black' ? 1 : 2;
 
-    this.render.addStone(row, col, stoneColor);
-    this.render.showLastMoveMarker(row, col);
+    if (this.isRenderReady()) {
+      this.render.addStone(row, col, stoneColor);
+      this.render.showLastMoveMarker(row, col);
+    }
     if (this.settings.sound) this.sound.play('place');
 
     if (result.winner) {
-      this.render.showWinLine(result.winLine);
+      if (this.isRenderReady()) this.render.showWinLine(result.winLine);
       const winnerColor = result.winner === 'draw' ? null : result.winner;
       setTimeout(() => this.handleGameEnd(winnerColor), 600);
       return true;
@@ -438,12 +451,14 @@ const App = {
     const lastMove = this.game.moveHistory[this.game.moveHistory.length - 1];
     const stoneColor = lastMove.color === 'black' ? 1 : 2;
 
-    this.render.addStone(row, col, stoneColor);
-    this.render.showLastMoveMarker(row, col);
+    if (this.isRenderReady()) {
+      this.render.addStone(row, col, stoneColor);
+      this.render.showLastMoveMarker(row, col);
+    }
     if (this.settings.sound) this.sound.play('place');
 
     if (result.winner) {
-      this.render.showWinLine(result.winLine);
+      if (this.isRenderReady()) this.render.showWinLine(result.winLine);
       const winnerColor = result.winner === 'draw' ? null : result.winner;
       setTimeout(() => this.handleGameEnd(winnerColor), 600);
       return;
@@ -710,8 +725,10 @@ const App = {
 
   undoMove() {
     this.game.undo(1);
-    this.render.removeLastStone();
-    this.render.clearEffects();
+    if (this.isRenderReady()) {
+      this.render.removeLastStone();
+      this.render.clearEffects();
+    }
     this.updateTurnIndicator();
   },
 
@@ -719,8 +736,10 @@ const App = {
     if (this.game) {
       this.game = new GameEngine(this.game.size);
       this.tutor = new AITutor(this.game);
-      this.render.clearStones();
-      this.render.clearEffects();
+      if (this.isRenderReady()) {
+        this.render.clearStones();
+        this.render.clearEffects();
+      }
       document.getElementById('result-modal').classList.remove('show');
       this.updateTurnIndicator();
 
@@ -966,12 +985,14 @@ const App = {
 
   // ==================== Canvas Resize ====================
   resizeCanvas() {
-    if (!this.render) return;
+    if (!this.isRenderReady()) return;
     const wrap = document.querySelector('.game-canvas-wrap');
     if (wrap) {
       const w = wrap.clientWidth;
       const h = wrap.clientHeight;
-      this.render.resize(w, h);
+      if (w > 0 && h > 0) {
+        this.render.resize(w, h);
+      }
     }
   },
 
