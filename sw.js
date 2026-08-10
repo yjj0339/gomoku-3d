@@ -1,13 +1,16 @@
 /**
- * Gomoku 3D - Service Worker
- * Offline caching for PWA
+ * Gomoku 3D - Service Worker v9
+ * Network-first strategy: always fetch fresh code, fallback to cache when offline
  */
 
-const CACHE_NAME = 'gomoku-3d-v7';
+const CACHE_NAME = 'gomoku-3d-v9';
 const STATIC_ASSETS = [
   './',
   './index.html',
   './css/style.css',
+  './js/vendor/three.min.js',
+  './js/vendor/OrbitControls.js',
+  './js/vendor/peerjs.min.js',
   './js/themes.js',
   './js/game-engine.js',
   './js/ai-engine.js',
@@ -18,95 +21,80 @@ const STATIC_ASSETS = [
   './js/game-history.js',
   './js/network.js',
   './js/app.js',
-  './manifest.json',
-  // External CDN resources (best-effort cache)
-  'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js',
-  'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js',
-  'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js'
+  './manifest.json'
 ];
 
-// Install - cache static assets
+// Install - pre-cache static assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(STATIC_ASSETS).catch(err => {
-        console.log('Cache addAll error (some resources may fail):', err);
+        console.log('SW: Some assets failed to cache:', err);
       });
     })
   );
+  // Force immediate activation
   self.skipWaiting();
 });
 
-// Activate - clean old caches
+// Activate - purge ALL old caches immediately
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.filter(name => name !== CACHE_NAME).map(name => caches.delete(name))
+        cacheNames.map(name => {
+          if (name !== CACHE_NAME) {
+            console.log('SW: Deleting old cache:', name);
+            return caches.delete(name);
+          }
+        })
       );
+    }).then(() => {
+      // Take control of all clients immediately
+      return self.clients.claim();
     })
   );
-  self.clients.claim();
 });
 
-// Fetch - cache-first for static, network-first for API
+// Fetch - network-first for everything (ensures fresh code)
 self.addEventListener('fetch', (event) => {
   const request = event.request;
 
   // Skip non-GET requests
   if (request.method !== 'GET') return;
 
-  // Skip WebSocket upgrade
+  // Skip WebSocket/PeerJS signaling
   if (request.headers.get('upgrade') === 'websocket') return;
 
   const url = new URL(request.url);
 
-  // Same-origin: cache-first
-  if (url.origin === self.location.origin) {
-    event.respondWith(
-      caches.match(request).then((cached) => {
-        if (cached) {
-          // Update cache in background
-          fetch(request).then(response => {
-            if (response.ok) {
-              caches.open(CACHE_NAME).then(cache => cache.put(request, response));
-            }
-          }).catch(() => {});
-          return cached;
-        }
-        return fetch(request).then(response => {
-          if (response.ok && response.type === 'basic') {
-            const responseClone = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(request, responseClone));
-          }
-          return response;
-        }).catch(() => {
-          // Offline fallback
-          if (request.destination === 'document') {
-            return caches.match('/index.html');
-          }
-        });
-      })
-    );
+  // Only handle same-origin requests
+  if (url.origin !== self.location.origin) {
+    // Let cross-origin requests pass through normally
     return;
   }
 
-  // Cross-origin (CDN): stale-while-revalidate
-  if (url.origin === 'https://cdnjs.cloudflare.com' ||
-      url.origin === 'https://cdn.jsdelivr.net' ||
-      url.origin === 'https://unpkg.com') {
-    event.respondWith(
-      caches.match(request).then((cached) => {
-        const fetchPromise = fetch(request).then(response => {
-          if (response.ok) {
-            const responseClone = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(request, responseClone));
-          }
-          return response;
-        }).catch(() => cached);
-        return cached || fetchPromise;
-      })
-    );
-    return;
-  }
+  // Network-first: try network, fall back to cache
+  event.respondWith(
+    fetch(request).then((response) => {
+      // Clone and cache successful responses
+      if (response.ok && response.type === 'basic') {
+        const responseClone = response.clone();
+        caches.open(CACHE_NAME).then(cache => {
+          cache.put(request, responseClone);
+        });
+      }
+      return response;
+    }).catch(() => {
+      // Network failed (offline) - try cache
+      return caches.match(request).then((cached) => {
+        if (cached) return cached;
+        // Final fallback for navigation requests
+        if (request.destination === 'document') {
+          return caches.match('./index.html');
+        }
+        return new Response('Offline', { status: 503, statusText: 'Offline' });
+      });
+    })
+  );
 });
