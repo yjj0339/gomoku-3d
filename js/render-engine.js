@@ -31,23 +31,36 @@ class RenderEngine {
   init(theme) {
     this.theme = theme;
 
-    this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(theme.bgColor || 0xFAFAFC);
-    this.scene.fog = new THREE.Fog(theme.bgColor || 0xFAFAFC, 30, 60);
+    // Use a light background for the 3D scene to match the white glass UI
+    const bgColor = '#f0f2f5';
+    const bgColorHex = parseInt(bgColor.replace('#', ''), 16);
 
-    const aspect = this.container.clientWidth / this.container.clientHeight;
+    this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color(bgColorHex);
+    this.scene.fog = new THREE.Fog(bgColorHex, 35, 70);
+
+    // Ensure container has valid dimensions; use fallback if hidden
+    let w = this.container.clientWidth;
+    let h = this.container.clientHeight;
+    if (!w || !h) {
+      w = window.innerWidth;
+      h = window.innerHeight;
+    }
+
+    const aspect = w / h;
     this.camera = new THREE.PerspectiveCamera(40, aspect, 0.1, 1000);
     this.camera.position.set(0, 16, 14);
     this.camera.lookAt(0, 0, 0);
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
-    this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+    this.renderer.setSize(w, h);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputEncoding = THREE.sRGBEncoding;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.1;
+    this.renderer.setClearColor(bgColorHex, 1);
     this.container.appendChild(this.renderer.domElement);
 
     this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
@@ -73,10 +86,10 @@ class RenderEngine {
   }
 
   setupLighting() {
-    const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+    const ambient = new THREE.AmbientLight(0xffffff, 0.7);
     this.scene.add(ambient);
 
-    const keyLight = new THREE.DirectionalLight(0xffffff, 0.7);
+    const keyLight = new THREE.DirectionalLight(0xffffff, 0.8);
     keyLight.position.set(8, 18, 10);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.width = 2048;
@@ -90,15 +103,15 @@ class RenderEngine {
     keyLight.shadow.bias = -0.0005;
     this.scene.add(keyLight);
 
-    const fillLight = new THREE.DirectionalLight(0x9DB4D9, 0.3);
+    const fillLight = new THREE.DirectionalLight(0xB8CCE6, 0.4);
     fillLight.position.set(-8, 6, -6);
     this.scene.add(fillLight);
 
-    const rimLight = new THREE.DirectionalLight(0xFFE0B0, 0.2);
+    const rimLight = new THREE.DirectionalLight(0xFFE8C8, 0.3);
     rimLight.position.set(0, 4, -12);
     this.scene.add(rimLight);
 
-    const hemi = new THREE.HemisphereLight(0xFAFAFC, 0x888899, 0.3);
+    const hemi = new THREE.HemisphereLight(0xffffff, 0xC8CCE0, 0.4);
     this.scene.add(hemi);
   }
 
@@ -115,8 +128,10 @@ class RenderEngine {
 
     // Board base
     const boardGeom = new THREE.BoxGeometry(size + margin * 2, boardThickness, size + margin * 2);
+    const boardColorStr = theme.boardColor || '#E8D5B7';
+    const boardColorHex = typeof boardColorStr === 'string' ? parseInt(boardColorStr.replace('#', ''), 16) : boardColorStr;
     const boardMat = new THREE.MeshStandardMaterial({
-      color: theme.boardColor || 0xE8D5B7,
+      color: boardColorHex,
       roughness: theme.boardRoughness || 0.6,
       metalness: theme.boardMetalness || 0.05
     });
@@ -126,7 +141,9 @@ class RenderEngine {
     this.boardGroup.add(board);
 
     // Grid lines
-    const lineMat = new THREE.LineBasicMaterial({ color: theme.lineColor || 0x3D3D3D, transparent: true, opacity: 0.7 });
+    const lineColorStr = theme.lineColor || '#3D3D3D';
+    const lineColorHex = typeof lineColorStr === 'string' ? parseInt(lineColorStr.replace('#', ''), 16) : lineColorStr;
+    const lineMat = new THREE.LineBasicMaterial({ color: lineColorHex, transparent: true, opacity: 0.7 });
     for (let i = 0; i < this.boardSize; i++) {
       const pos = -size / 2 + i * this.cellSize;
       const hGeom = new THREE.BufferGeometry().setFromPoints([
@@ -145,7 +162,7 @@ class RenderEngine {
     // Star points
     const starPositions = [[3, 3], [3, 11], [7, 7], [11, 3], [11, 11]];
     const starGeom = new THREE.CircleGeometry(0.08, 16);
-    const starMat = new THREE.MeshBasicMaterial({ color: theme.lineColor || 0x3D3D3D });
+    const starMat = new THREE.MeshBasicMaterial({ color: lineColorHex });
     starPositions.forEach(([row, col]) => {
       const star = new THREE.Mesh(starGeom, starMat);
       star.rotation.x = -Math.PI / 2;
@@ -155,8 +172,10 @@ class RenderEngine {
 
     // Board edge bevel (decorative rim)
     const edgeGeom = new THREE.BoxGeometry(size + margin * 2 + 0.1, 0.05, size + margin * 2 + 0.1);
+    const accentColorStr = theme.accentColor || '#4A90D9';
+    const accentColorHex = typeof accentColorStr === 'string' ? parseInt(accentColorStr.replace('#', ''), 16) : accentColorStr;
     const edgeMat = new THREE.MeshStandardMaterial({
-      color: theme.accentColor || 0x4A90D9,
+      color: accentColorHex,
       roughness: 0.3,
       metalness: 0.8,
       transparent: true,
@@ -436,8 +455,11 @@ class RenderEngine {
 
   setTheme(theme) {
     this.theme = theme;
-    this.scene.background = new THREE.Color(theme.bgColor || 0xFAFAFC);
-    this.scene.fog.color = new THREE.Color(theme.bgColor || 0xFAFAFC);
+    // Keep light 3D background to match white glass UI
+    const bgColorHex = 0xf0f2f5;
+    this.scene.background = new THREE.Color(bgColorHex);
+    this.scene.fog.color = new THREE.Color(bgColorHex);
+    if (this.renderer) this.renderer.setClearColor(bgColorHex, 1);
     this.createBoard(theme);
     this.createCoordGroup();
   }
@@ -512,8 +534,23 @@ class RenderEngine {
 
   onResize() {
     if (!this.renderer || !this.camera) return;
-    const w = this.container.clientWidth;
-    const h = this.container.clientHeight;
+    let w = this.container.clientWidth;
+    let h = this.container.clientHeight;
+    if (!w || !h) {
+      w = window.innerWidth;
+      h = window.innerHeight;
+    }
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize(w, h);
+  }
+
+  resize(w, h) {
+    if (!this.renderer || !this.camera) return;
+    if (!w || !h) {
+      w = this.container.clientWidth || window.innerWidth;
+      h = this.container.clientHeight || window.innerHeight;
+    }
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
