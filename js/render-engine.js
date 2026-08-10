@@ -52,7 +52,12 @@ class RenderEngine {
     this.camera.position.set(0, 16, 14);
     this.camera.lookAt(0, 0, 0);
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+    this.renderer = new THREE.WebGLRenderer({
+      canvas: this.container,
+      antialias: true,
+      alpha: false,
+      powerPreference: 'high-performance'
+    });
     this.renderer.setSize(w, h);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
@@ -61,7 +66,6 @@ class RenderEngine {
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.1;
     this.renderer.setClearColor(bgColorHex, 1);
-    this.container.appendChild(this.renderer.domElement);
 
     this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
@@ -569,9 +573,8 @@ class RenderEngine {
     }
     if (this.renderer) {
       this.renderer.dispose();
-      if (this.renderer.domElement.parentNode) {
-        this.renderer.domElement.parentNode.removeChild(this.renderer.domElement);
-      }
+      // Canvas stays in DOM; just clean up GL context
+      this.renderer.forceContextLoss();
     }
   }
 }
