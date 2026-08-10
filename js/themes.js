@@ -296,6 +296,7 @@ class ThemeManager {
     const theme = this.getTheme(name);
     const root = document.documentElement;
     
+    // Only set board/stone visual properties - keep white glass UI shell
     root.style.setProperty('--board-color', theme.boardColor);
     root.style.setProperty('--board-color-dark', theme.boardColorDark);
     root.style.setProperty('--line-color', theme.lineColor);
@@ -303,21 +304,28 @@ class ThemeManager {
     root.style.setProperty('--black-stone-highlight', theme.blackStoneHighlight);
     root.style.setProperty('--white-stone', theme.whiteStone);
     root.style.setProperty('--white-stone-highlight', theme.whiteStoneHighlight);
-    root.style.setProperty('--bg-color', theme.backgroundColor);
-    root.style.setProperty('--panel-color', theme.panelColor);
-    root.style.setProperty('--text-color', theme.textColor);
     root.style.setProperty('--accent-color', theme.accentColor);
     root.style.setProperty('--star-point-color', theme.starPointColor);
+    // Update accent gradient based on theme accent
+    root.style.setProperty('--accent-gradient', `linear-gradient(135deg, ${theme.accentColor}, ${this._shiftHue(theme.accentColor)})`);
 
-    // Update meta theme color
+    // Update meta theme color to white glass
     const metaTheme = document.querySelector('meta[name="theme-color"]');
     if (metaTheme) {
-      metaTheme.setAttribute('content', theme.backgroundColor);
+      metaTheme.setAttribute('content', '#f0f2f5');
     }
+  }
 
-    // Update body background
-    document.body.style.backgroundColor = theme.backgroundColor;
-    document.body.style.color = theme.textColor;
+  _shiftHue(hex) {
+    // Simple helper to create a gradient companion color
+    const r = parseInt(hex.slice(1,3), 16);
+    const g = parseInt(hex.slice(3,5), 16);
+    const b = parseInt(hex.slice(5,7), 16);
+    // Shift towards purple/blue for gradient variety
+    const nr = Math.max(0, Math.min(255, Math.round(r * 0.7 + 60)));
+    const ng = Math.max(0, Math.min(255, Math.round(g * 0.7 + 80)));
+    const nb = Math.max(0, Math.min(255, Math.round(b * 0.7 + 120)));
+    return '#' + ((1 << 24) + (nr << 16) + (ng << 8) + nb).toString(16).slice(1);
   }
 
   getCurrentTheme() {
