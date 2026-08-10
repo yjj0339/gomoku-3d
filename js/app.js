@@ -207,8 +207,8 @@ const App = {
         this.loadHistoryList();
       } else if (name === 'tutor-screen') {
         this.loadTutorKnowledge();
-      } else if (name === 'game-screen') {
-        this.resizeCanvas();
+      } else       if (name === 'game-screen') {
+        setTimeout(() => this.resizeCanvas(), 100);
       }
     }
   },
@@ -357,6 +357,10 @@ const App = {
     this.render.clearEffects();
 
     this.showScreen('game-screen');
+    // Resize after DOM is visible
+    setTimeout(() => {
+      this.resizeCanvas();
+    }, 50);
     this.updateTurnIndicator();
 
     // If AI moves first
