@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>五子棋 · GOMOKU</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/png" href="./icon.png">
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div id="loading-screen" class="screen active">
+    <div class="loader">
+      <div class="loader-orb"></div>
+      <div class="loader-text">GOMOKU</div>
+      <div class="loader-sub">加载中</div>
+    </div>
+  </div>
+
+  <!-- Main Menu -->
+  <div id="menu-screen" class="screen">
+    <div class="menu-container">
+      <div class="logo-section">
+        <div class="logo-mark">
+          <div class="logo-stone black"></div>
+          <div class="logo-stone white"></div>
+        </div>
+        <h1 class="logo-title">五子棋</h1>
+        <p class="logo-subtitle">GOMOKU · 专业对弈</p>
+      </div>
+
+      <div class="menu-buttons">
+        <button class="menu-btn primary" data-screen="ai-setup">
+          <span class="btn-icon">♟</span>
+          <span class="btn-text">人机对战</span>
+          <span class="btn-desc">挑战AI</span>
+        </button>
+        <button class="menu-btn" data-screen="local-setup">
+          <span class="btn-icon">♜</span>
+          <span class="btn-text">本地对战</span>
+          <span class="btn-desc">同屏对弈</span>
+        </button>
+        <button class="menu-btn" data-screen="online-setup">
+          <span class="btn-icon">⛓</span>
+          <span class="btn-text">在线联机</span>
+          <span class="btn-desc">远程对战</span>
+        </button>
+        <button class="menu-btn" data-screen="tutor-screen">
+          <span class="btn-icon">📖</span>
+          <span class="btn-text">AI教学</span>
+          <span class="btn-desc">学习提升</span>
+        </button>
+        <button class="menu-btn" data-screen="history-screen">
+          <span class="btn-icon"> clock </span>
+          <span class="btn-text">棋谱回忆</span>
+          <span class="btn-desc">历史记录</span>
+        </button>
+      </div>
+
+      <div class="menu-footer">
+        <button class="footer-btn" data-screen="settings-screen" id="btn-settings">⚙ 设置</button>
+        <button class="footer-btn" data-screen="theme-screen" id="btn-theme">🎨 主题</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Setup Screen -->
+  <div id="ai-setup" class="screen">
+    <div class="setup-container">
+      <div class="setup-header">
+        <button class="back-btn" data-back="menu-screen">←</button>
+        <h2>人机对战</h2>
+      </div>
+      <div class="setup-body">
+        <div class="setup-section">
+          <label class="setup-label">选择难度</label>
+          <div class="difficulty-grid">
+            <div class="diff-card" data-difficulty="easy">
+              <div class="diff-name">入门</div>
+              <div class="diff-en">Easy</div>
+              <div class="diff-desc">适合初学者</div>
+              <div class="diff-stars">★☆☆☆☆</div>
+            </div>
+            <div class="diff-card" data-difficulty="medium">
+              <div class="diff-name">进阶</div>
+              <div class="diff-en">Medium</div>
+              <div class="diff-desc">有一定挑战</div>
+              <div class="diff-stars">★★☆☆☆</div>
+            </div>
+            <div class="diff-card" data-difficulty="hard">
+              <div class="diff-name">高手</div>
+              <div class="diff-en">Hard</div>
+              <div class="diff-desc">VCF搜索</div>
+              <div class="diff-stars">★★★☆☆</div>
+            </div>
+            <div class="diff-card" data-difficulty="master">
+              <div class="diff-name">大师</div>
+              <div class="diff-en">Master</div>
+              <div class="diff-desc">VCT+TSS</div>
+              <div class="diff-stars">★★★★☆</div>
+            </div>
+            <div class="diff-card highlight" data-difficulty="grandmaster">
+              <div class="diff-badge">最强</div>
+              <div class="diff-name">宗师</div>
+              <div class="diff-en">Grandmaster</div>
+              <div class="diff-desc">巅峰状态</div>
+              <div class="diff-stars">★★★★★</div>
+            </div>
+          </div>
+        </div>
+        <div class="setup-section">
+          <label class="setup-label">选择执子</label>
+          <div class="color-select">
+            <button class="color-btn active" data-color="black">
+              <div class="color-stone black"></div>
+              <span>执黑先行</span>
+            </button>
+            <button class="color-btn" data-color="white">
+              <div class="color-stone white"></div>
+              <span>执白后行</span>
+            </button>
+          </div>
+        </div>
+        <button class="start-btn" id="start-ai-game">开始对局</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Local Setup Screen -->
+  <div id="local-setup" class="screen">
+    <div class="setup-container">
+      <div class="setup-header">
+        <button class="back-btn" data-back="menu-screen">←</button>
+        <h2>本地对战</h2>
+      </div>
+      <div class="setup-body">
+        <div class="setup-section">
+          <label class="setup-label">对局模式</label>
+          <div class="mode-select">
+            <button class="mode-btn active" data-mode="normal">标准模式</button>
+            <button class="mode-btn" data-mode="swap">三手交换</button>
+          </div>
+        </div>
+        <div class="setup-section">
+          <label class="setup-label">棋盘规格</label>
+          <div class="mode-select">
+            <button class="size-btn active" data-size="15">15×15 标准</button>
+            <button class="size-btn" data-size="19">19×19 大盘</button>
+          </div>
+        </div>
+        <button class="start-btn" id="start-local-game">开始对局</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Online Setup Screen -->
+  <div id="online-setup" class="screen">
+    <div class="setup-container">
+      <div class="setup-header">
+        <button class="back-btn" data-back="menu-screen">←</button>
+        <h2>在线联机</h2>
+      </div>
+      <div class="setup-body">
+        <div class="setup-section">
+          <label class="setup-label">创建或加入房间</label>
+          <button class="action-btn" id="create-room-btn">
+            <span class="btn-icon">+</span>
+            <span>创建房间</span>
+          </button>
+          <div class="room-input-group">
+            <input type="text" id="room-code-input" placeholder="输入房间号" maxlength="6">
+            <button class="action-btn" id="join-room-btn">加入</button>
+          </div>
+        </div>
+        <div class="setup-section">
+          <label class="setup-label">在线状态</label>
+          <div class="status-card" id="online-status">
+            <span class="status-dot"></span>
+            <span class="status-text">未连接</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Room Waiting Screen -->
+  <div id="room-waiting" class="screen">
+    <div class="waiting-container">
+      <div class="setup-header">
+        <button class="back-btn" data-back="online-setup">←</button>
+        <h2>等待对手</h2>
+      </div>
+      <div class="waiting-body">
+        <div class="room-code-display">
+          <label>房间号</label>
+          <div class="code-box" id="room-code-display">------</div>
+          <button class="copy-btn" id="copy-room-code">复制</button>
+        </div>
+        <div class="waiting-animation">
+          <div class="pulse-ring"></div>
+          <div class="pulse-ring delayed"></div>
+          <div class="waiting-text">等待对手加入...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Screen -->
+  <div id="game-screen" class="screen">
+    <div class="game-top-bar">
+      <button class="game-btn" id="btn-undo">悔棋</button>
+      <div class="turn-indicator" id="turn-indicator">
+        <div class="turn-stone"></div>
+        <span class="turn-text">黑方落子</span>
+      </div>
+      <button class="game-btn" id="btn-menu">菜单</button>
+    </div>
+    <div class="game-canvas-wrap">
+      <canvas id="game-canvas"></canvas>
+    </div>
+    <div class="game-bottom-bar">
+      <button class="game-btn" id="btn-hint">提示</button>
+      <button class="game-btn" id="btn-restart">重开</button>
+      <button class="game-btn" id="btn-surrender">认输</button>
+    </div>
+    <div class="ai-thinking" id="ai-thinking" style="display:none;">
+      <div class="thinking-dot"></div>
+      <span>AI思考中...</span>
+    </div>
+    <div class="chat-panel" id="chat-panel" style="display:none;">
+      <div class="chat-messages" id="chat-messages"></div>
+      <div class="chat-input-group">
+        <input type="text" id="chat-input" placeholder="发送消息...">
+        <button id="chat-send">发送</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tutor Screen -->
+  <div id="tutor-screen" class="screen">
+    <div class="setup-container">
+      <div class="setup-header">
+        <button class="back-btn" data-back="menu-screen">←</button>
+        <h2>AI教学</h2>
+      </div>
+      <div class="setup-body tutor-body">
+        <div class="tutor-tabs">
+          <button class="tutor-tab active" data-tab="analysis">局面分析</button>
+          <button class="tutor-tab" data-tab="openings">开局理论</button>
+          <button class="tutor-tab" data-tab="patterns">棋型知识</button>
+          <button class="tutor-tab" data-tab="tactics">战术技巧</button>
+        </div>
+        <div class="tutor-content" id="tutor-content">
+          <div class="tutor-placeholder">开始对局后可使用AI分析功能</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- History Screen -->
+  <div id="history-screen" class="screen">
+    <div class="setup-container">
+      <div class="setup-header">
+        <button class="back-btn" data-back="menu-screen">←</button>
+        <h2>棋谱回忆</h2>
+      </div>
+      <div class="setup-body">
+        <div class="history-stats" id="history-stats">
+          <div class="stat-item"><span class="stat-label">总对局</span><span class="stat-value" id="stat-total">0</span></div>
+          <div class="stat-item"><span class="stat-label">胜</span><span class="stat-value win" id="stat-wins">0</span></div>
+          <div class="stat-item"><span class="stat-label">负</span><span class="stat-value lose" id="stat-losses">0</span></div>
+        </div>
+        <div class="history-list" id="history-list">
+          <div class="empty-state">暂无对局记录</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Replay Screen -->
+  <div id="replay-screen" class="screen">
+    <div class="setup-container">
+      <div class="setup-header">
+        <button class="back-btn" data-back="history-screen">←</button>
+        <h2>棋谱回放</h2>
+      </div>
+      <div class="setup-body replay-body">
+        <div class="replay-canvas-wrap">
+          <canvas id="replay-canvas"></canvas>
+        </div>
+        <div class="replay-controls">
+          <button class="replay-btn" id="replay-prev">◀</button>
+          <button class="replay-btn play" id="replay-play">▶</button>
+          <button class="replay-btn" id="replay-next">▶</button>
+        </div>
+        <div class="replay-progress">
+          <input type="range" id="replay-slider" min="0" max="100" value="0">
+          <div class="replay-move-info" id="replay-move-info">第 0 手</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Screen -->
+  <div id="settings-screen" class="screen">
+    <div class="setup-container">
+      <div class="setup-header">
+        <button class="back-btn" data-back="menu-screen">←</button>
+        <h2>设置</h2>
+      </div>
+      <div class="setup-body">
+        <div class="settings-list">
+          <div class="setting-item">
+            <label>音效</label>
+            <div class="toggle active" data-setting="sound"><div class="toggle-knob"></div></div>
+          </div>
+          <div class="setting-item">
+            <label>落子动画</label>
+            <div class="toggle active" data-setting="animation"><div class="toggle-knob"></div></div>
+          </div>
+          <div class="setting-item">
+            <label>坐标显示</label>
+            <div class="toggle" data-setting="coords"><div class="toggle-knob"></div></div>
+          </div>
+          <div class="setting-item">
+            <label>3D效果</label>
+            <div class="toggle active" data-setting="render3d"><div class="toggle-knob"></div></div>
+          </div>
+          <div class="setting-item">
+            <label>最后落子标记</label>
+            <div class="toggle active" data-setting="lastMove"><div class="toggle-knob"></div></div>
+          </div>
+          <div class="setting-item">
+            <label>连珠禁手提示</label>
+            <div class="toggle" data-setting="forbidden"><div class="toggle-knob"></div></div>
+          </div>
+        </div>
+        <button class="start-btn danger" id="clear-history-btn">清除所有记录</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Theme Screen -->
+  <div id="theme-screen" class="screen">
+    <div class="setup-container">
+      <div class="setup-header">
+        <button class="back-btn" data-back="menu-screen">←</button>
+        <h2>主题选择</h2>
+      </div>
+      <div class="setup-body">
+        <div class="theme-grid" id="theme-grid">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Result Modal -->
+  <div id="result-modal" class="modal">
+    <div class="modal-content">
+      <div class="result-icon" id="result-icon">🏆</div>
+      <div class="result-title" id="result-title">胜利</div>
+      <div class="result-detail" id="result-detail"></div>
+      <div class="result-buttons">
+        <button class="result-btn" id="result-replay">查看回放</button>
+        <button class="result-btn primary" id="result-restart">再来一局</button>
+        <button class="result-btn" id="result-menu">返回菜单</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Scripts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="./js/game-engine.js"></script>
+  <script src="./js/themes.js"></script>
+  <script src="./js/render-engine.js"></script>
+  <script src="./js/sound.js"></script>
+  <script src="./js/ai-engine.js"></script>
+  <script src="./js/ai-tutor.js"></script>
+  <script src="./js/ai-worker.js"></script>
+  <script src="./js/game-history.js"></script>
+  <script src="./js/network.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+</html>
