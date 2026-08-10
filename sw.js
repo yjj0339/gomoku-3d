@@ -3,7 +3,7 @@
  * Offline caching for PWA
  */
 
-const CACHE_NAME = 'gomoku-3d-v6';
+const CACHE_NAME = 'gomoku-3d-v7';
 const STATIC_ASSETS = [
   './',
   './index.html',
