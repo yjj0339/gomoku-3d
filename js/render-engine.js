@@ -31,13 +31,15 @@ class RenderEngine {
   init(theme) {
     this.theme = theme;
 
+    // Check if THREE is available
+    if (typeof THREE === 'undefined') {
+      this.showError('3D引擎加载失败，请检查网络后刷新页面');
+      return false;
+    }
+
     // Use a light background for the 3D scene to match the white glass UI
     const bgColor = '#f0f2f5';
     const bgColorHex = parseInt(bgColor.replace('#', ''), 16);
-
-    this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(bgColorHex);
-    this.scene.fog = new THREE.Fog(bgColorHex, 35, 70);
 
     // Ensure container has valid dimensions; use fallback if hidden
     let w = this.container.clientWidth;
@@ -47,46 +49,86 @@ class RenderEngine {
       h = window.innerHeight;
     }
 
-    const aspect = w / h;
-    this.camera = new THREE.PerspectiveCamera(40, aspect, 0.1, 1000);
-    this.camera.position.set(0, 16, 14);
-    this.camera.lookAt(0, 0, 0);
+    try {
+      this.scene = new THREE.Scene();
+      this.scene.background = new THREE.Color(bgColorHex);
+      this.scene.fog = new THREE.Fog(bgColorHex, 35, 70);
 
-    this.renderer = new THREE.WebGLRenderer({
-      canvas: this.container,
-      antialias: true,
-      alpha: false,
-      powerPreference: 'high-performance'
-    });
-    this.renderer.setSize(w, h);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    this.renderer.outputEncoding = THREE.sRGBEncoding;
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.1;
-    this.renderer.setClearColor(bgColorHex, 1);
+      const aspect = w / h;
+      this.camera = new THREE.PerspectiveCamera(40, aspect, 0.1, 1000);
+      this.camera.position.set(0, 16, 14);
+      this.camera.lookAt(0, 0, 0);
 
-    this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
-    this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.08;
-    this.controls.minDistance = 10;
-    this.controls.maxDistance = 28;
-    this.controls.minPolarAngle = 0.1;
-    this.controls.maxPolarAngle = Math.PI / 2.1;
-    this.controls.enablePan = false;
-    this.controls.rotateSpeed = 0.6;
-    this.controls.zoomSpeed = 0.7;
+      // Try to create WebGL renderer, with fallback for older devices
+      let glContext = null;
+      try {
+        glContext = this.container.getContext('webgl2') || this.container.getContext('webgl') || this.container.getContext('experimental-webgl');
+      } catch (e) {
+        console.warn('WebGL context creation threw:', e);
+      }
 
-    this.setupLighting();
-    this.createBoard(theme);
-    this.createStonesGroup();
-    this.createEffectsGroup();
-    this.createCoordGroup();
-    this.createHoverMesh();
+      if (!glContext) {
+        this.showError('您的浏览器不支持WebGL，请尝试更换浏览器');
+        return false;
+      }
 
-    window.addEventListener('resize', this.onResize);
-    this.animate();
+      this.renderer = new THREE.WebGLRenderer({
+        canvas: this.container,
+        antialias: true,
+        alpha: false,
+        powerPreference: 'high-performance'
+      });
+      this.renderer.setSize(w, h);
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      this.renderer.shadowMap.enabled = true;
+      this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      this.renderer.outputEncoding = THREE.sRGBEncoding;
+      this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      this.renderer.toneMappingExposure = 1.1;
+      this.renderer.setClearColor(bgColorHex, 1);
+
+      // Check if OrbitControls is available
+      if (typeof THREE.OrbitControls !== 'undefined') {
+        this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+        this.controls.enableDamping = true;
+        this.controls.dampingFactor = 0.08;
+        this.controls.minDistance = 10;
+        this.controls.maxDistance = 28;
+        this.controls.minPolarAngle = 0.1;
+        this.controls.maxPolarAngle = Math.PI / 2.1;
+        this.controls.enablePan = false;
+        this.controls.rotateSpeed = 0.6;
+        this.controls.zoomSpeed = 0.7;
+      }
+
+      this.setupLighting();
+      this.createBoard(theme);
+      this.createStonesGroup();
+      this.createEffectsGroup();
+      this.createCoordGroup();
+      this.createHoverMesh();
+
+      window.addEventListener('resize', this.onResize);
+      this.animate();
+      this._initialized = true;
+      return true;
+    } catch (err) {
+      console.error('RenderEngine init failed:', err);
+      this.showError('3D初始化失败: ' + (err.message || err));
+      return false;
+    }
+  }
+
+  showError(msg) {
+    // Show error message on the canvas container
+    const parent = this.container.parentElement;
+    if (parent) {
+      const errDiv = document.createElement('div');
+      errDiv.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#f0f2f5;color:#333;font-size:16px;text-align:center;padding:20px;z-index:10;';
+      errDiv.innerHTML = '<div><div style="font-size:48px;margin-bottom:12px;">&#9888;</div><div>' + msg + '</div><div style="margin-top:16px;font-size:13px;color:#999;">请尝试清除浏览器缓存后刷新</div></div>';
+      parent.appendChild(errDiv);
+    }
+    this._initialized = false;
   }
 
   setupLighting() {
@@ -170,7 +212,7 @@ class RenderEngine {
     starPositions.forEach(([row, col]) => {
       const star = new THREE.Mesh(starGeom, starMat);
       star.rotation.x = -Math.PI / 2;
-      star.position.set(this.gridToWorld(col), 0.02, this.gridToWorld(row));
+      star.position.set(-size / 2 + col * this.cellSize, 0.02, -size / 2 + row * this.cellSize);
       this.boardGroup.add(star);
     });
 
@@ -500,7 +542,7 @@ class RenderEngine {
 
   animate() {
     requestAnimationFrame(this.animate);
-    if (!this.renderer) return;
+    if (!this.renderer || !this._initialized) return;
 
     const now = performance.now();
 
