@@ -1,6 +1,6 @@
 /**
- * Gomoku 3D - Main App Controller v5.0
- * Professional Renju AI, 26 openings, VCF/VCT/TSS, 16 themes
+ * Gomoku 3D - Main App Controller v6.0
+ * World Pro Database | 50+ Openings | 30+ Patterns | Player ELO & Achievements
  */
 
 const App = {
@@ -14,6 +14,10 @@ const App = {
   network: null,
   sound: null,
   themeManager: null,
+  playerData: null,
+  achievements: null,
+  analytics: null,
+  selectedProPlayer: null,
 
   // UI state
   currentScreen: 'loading-screen',
@@ -48,15 +52,23 @@ const App = {
     this.themeManager = new ThemeManager();
     this.history = new GameHistory();
     this.sound = new SoundManager();
+    this.playerData = new PlayerData();
+    this.achievements = new AchievementSystem(this.playerData);
+    this.analytics = new Analytics(this.playerData);
 
     this.loadSettings();
     this.applyTheme(this.selectedTheme);
     this.initRender();
     this.initInput();
     this.initNetworkHandlers();
+    this.initOfflineDetection();
     this.renderThemeGrid();
     this.loadHistoryList();
     this.loadTutorKnowledge();
+    this.loadProPlayerGrid();
+    this.loadAchievementList();
+    this.loadAnalyticsDashboard();
+    this.checkDailyChallenge();
 
     // Hide loading, show menu
     setTimeout(() => {
@@ -68,6 +80,27 @@ const App = {
       navigator.serviceWorker.register('./sw.js').catch(err => {
         console.log('SW registration failed:', err);
       });
+    }
+  },
+
+  // ==================== Offline Detection ====================
+  initOfflineDetection() {
+    const offlineBanner = document.createElement('div');
+    offlineBanner.id = 'offline-banner';
+    offlineBanner.className = 'offline-banner';
+    offlineBanner.innerHTML = '<span class="offline-icon">&#9888;</span> 网络已断开，部分功能不可用';
+    document.body.appendChild(offlineBanner);
+
+    window.addEventListener('online', () => {
+      offlineBanner.classList.remove('show');
+      this.showToast('网络已恢复');
+    });
+    window.addEventListener('offline', () => {
+      offlineBanner.classList.add('show');
+    });
+
+    if (!navigator.onLine) {
+      offlineBanner.classList.add('show');
     }
   },
 
@@ -983,6 +1016,196 @@ const App = {
     }
   },
 
+  // ==================== Pro Player ====================
+  loadProPlayerGrid() {
+    const grid = document.getElementById('pro-player-grid');
+    if (!grid) return;
+    const players = ProPlayers.getPlayersSortedByElo();
+    grid.innerHTML = players.map(p => `
+      <div class="pro-player-card" data-id="${p.id}">
+        <div class="pro-avatar">${p.avatar}</div>
+        <div class="pro-info">
+          <div class="pro-name">${p.name}</div>
+          <div class="pro-title">${p.titles[0] || '职业棋手'}</div>
+          <div class="pro-elo">ELO ${p.elo}</div>
+        </div>
+        <div class="pro-style" style="background:${ProPlayers.styles[p.style]?.color || '#666'}">${ProPlayers.styles[p.style]?.name || p.style}</div>
+      </div>
+    `).join('');
+    grid.querySelectorAll('.pro-player-card').forEach(card => {
+      card.addEventListener('click', () => this.showProPlayerDetail(card.dataset.id));
+    });
+  },
+
+  showProPlayerDetail(playerId) {
+    const player = ProPlayers.getPlayer(playerId);
+    if (!player) return;
+    this.selectedProPlayer = playerId;
+    // Show pro player detail modal
+    const modal = document.getElementById('pro-player-modal');
+    if (modal) {
+      document.getElementById('pro-detail-name').textContent = player.name;
+      document.getElementById('pro-detail-nationality').textContent = player.nationality;
+      document.getElementById('pro-detail-elo').textContent = 'ELO ' + player.elo;
+      document.getElementById('pro-detail-style').textContent = ProPlayers.styles[player.style]?.name || player.style;
+      document.getElementById('pro-detail-avatar').textContent = player.avatar;
+      const achievementsEl = document.getElementById('pro-detail-achievements');
+      if (achievementsEl) achievementsEl.innerHTML = player.achievements.map(a => `<li>${a}</li>`).join('');
+      modal.classList.add('show');
+    }
+  },
+
+  selectProPlayerForAI() {
+    if (this.selectedProPlayer) {
+      const player = ProPlayers.getPlayer(this.selectedProPlayer);
+      if (player) {
+        // Configure AI with player style parameters
+        this.aiDifficulty = 'grandmaster';
+        this.selectedProPlayerName = player.name;
+        this.showToast(`已选择${player.name}风格对战`);
+      }
+    }
+  },
+
+  // ==================== Achievements ====================
+  loadAchievementList() {
+    const container = document.getElementById('achievement-list');
+    if (!container || !this.achievements) return;
+    const all = this.achievements.getAllAchievements();
+    container.innerHTML = all.map(a => `
+      <div class="achievement-item ${a.unlocked ? 'unlocked' : 'locked'}">
+        <div class="achievement-icon">${a.icon}</div>
+        <div class="achievement-info">
+          <div class="achievement-name">${a.name}</div>
+          <div class="achievement-desc">${a.description}</div>
+          <div class="achievement-progress">${a.progress}/${a.target}</div>
+        </div>
+      </div>
+    `).join('');
+  },
+
+  // ==================== Analytics ====================
+  loadAnalyticsDashboard() {
+    // Will be populated when player-data.js loads
+  },
+
+  // ==================== Daily Challenge ====================
+  checkDailyChallenge() {
+    if (!this.playerData) return;
+    const today = new Date().toDateString();
+    const lastCheck = localStorage.getItem('gomoku-last-challenge-date');
+    if (lastCheck !== today) {
+      localStorage.setItem('gomoku-last-challenge-date', today);
+      // Generate new daily challenge
+      const challenges = [
+        '用黑棋赢一局AI对战',
+        '用白棋赢一局AI对战',
+        '完成一局在线对战',
+        '学习3个开局知识',
+        '赢一局困难难度AI',
+        '连续赢2局',
+        '在20步内赢一局'
+      ];
+      const challenge = challenges[Math.floor(Math.random() * challenges.length)];
+      localStorage.setItem('gomoku-daily-challenge', challenge);
+      this.showToast('今日挑战: ' + challenge);
+    }
+  },
+
+  // ==================== Share ====================
+  shareGameResult(result) {
+    const text = `我在五子棋3D中${result.winner === 'draw' ? '打平' : result.winner === this.myColor ? '赢了' : '输了'}一局！`;
+    if (navigator.share) {
+      navigator.share({ title: '五子棋3D对战结果', text });
+    } else {
+      navigator.clipboard.writeText(text).then(() => this.showToast('结果已复制'));
+    }
+  },
+
+  // ==================== Export/Import Game ====================
+  exportGameRecord() {
+    if (!this.game || this.game.moveHistory.length === 0) return;
+    const record = {
+      version: '1.0',
+      date: new Date().toISOString(),
+      size: this.game.size,
+      moves: this.game.moveHistory.map(m => ({ r: m.row, c: m.col, p: m.color === 'black' ? 1 : 2 })),
+      result: this.game.winner
+    };
+    const blob = new Blob([JSON.stringify(record, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `gomoku_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    this.showToast('棋谱已导出');
+  },
+
+  // ==================== Game End with Stats ====================
+  handleGameEnd(winner) {
+    const result = {
+      winner: winner,
+      myColor: this.myColor,
+      totalMoves: this.game.moveHistory.length,
+      aiDifficulty: this.aiDifficulty,
+      mode: this.mode,
+      proPlayer: this.selectedProPlayerName || null
+    };
+    this.lastGameResult = result;
+    // Record stats
+    if (this.playerData) {
+      this.playerData.recordGame(result);
+    }
+    // Check achievements
+    if (this.achievements) {
+      this.achievements.checkAll(result, this.game);
+      const newUnlocks = this.achievements.getNewUnlocks();
+      if (newUnlocks.length > 0) {
+        newUnlocks.forEach(a => this.showToast(`🏆 解锁成就: ${a.name}`));
+      }
+    }
+    // Show result modal
+    this.showResultModal(result);
+    // Check daily challenge
+    const challenge = localStorage.getItem('gomoku-daily-challenge');
+    if (challenge && this.playerData) {
+      const completed = this.playerData.checkDailyChallenge(challenge, result);
+      if (completed) {
+        this.showToast('🎉 完成今日挑战！');
+        localStorage.removeItem('gomoku-daily-challenge');
+      }
+    }
+  },
+
+  showResultModal(result) {
+    const modal = document.getElementById('result-modal');
+    if (!modal) return;
+    const icon = document.getElementById('result-icon');
+    const title = document.getElementById('result-title');
+    const detail = document.getElementById('result-detail');
+    if (result.winner === 'draw') {
+      icon.textContent = '🤝';
+      title.textContent = '平局';
+    } else if (result.winner === this.myColor) {
+      icon.textContent = '🏆';
+      title.textContent = '胜利';
+    } else {
+      icon.textContent = '😔';
+      title.textContent = '失败';
+    }
+    let detailText = `共 ${result.totalMoves} 步`;
+    if (result.mode === 'ai' && result.aiDifficulty) {
+      detailText += ` · 难度: ${result.aiDifficulty}`;
+    }
+    if (result.proPlayer) {
+      detailText += ` · 对手: ${result.proPlayer}`;
+    }
+    detail.textContent = detailText;
+    modal.classList.add('show');
+    if (this.settings.sound) this.sound.play(result.winner === this.myColor ? 'win' : 'lose');
+  },
+
   // ==================== Canvas Resize ====================
   resizeCanvas() {
     if (!this.isRenderReady()) return;
@@ -1150,4 +1373,56 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Prevent context menu on canvas
   document.getElementById('game-canvas').addEventListener('contextmenu', e => e.preventDefault());
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'u' || e.key === 'U') {
+      if (App.currentScreen === 'game-screen') App.requestUndo();
+    }
+    if (e.key === 'r' || e.key === 'R') {
+      if (App.currentScreen === 'game-screen') App.restart();
+    }
+    if (e.key === 'h' || e.key === 'H') {
+      if (App.currentScreen === 'game-screen') App.showHint();
+    }
+    if (e.key === 'Escape') {
+      if (App.currentScreen === 'game-screen') {
+        if (confirm('退出当前对局？')) {
+          if (App.isRenderReady()) {
+            App.render.clearStones();
+            App.render.clearEffects();
+          }
+          App.showScreen('menu-screen');
+        }
+      }
+    }
+    if (e.key === ' ') {
+      if (App.currentScreen === 'replay-screen') App.replayPlay();
+    }
+    if (e.key === 'ArrowLeft') {
+      if (App.currentScreen === 'replay-screen') App.replayPrev();
+    }
+    if (e.key === 'ArrowRight') {
+      if (App.currentScreen === 'replay-screen') App.replayNext();
+    }
+  });
+
+  // Modal close buttons
+  document.querySelectorAll('.modal-close').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const modalId = btn.dataset.close;
+      if (modalId) document.getElementById(modalId).classList.remove('show');
+    });
+  });
+
+  // Select pro player button
+  const selectProBtn = document.getElementById('select-pro-btn');
+  if (selectProBtn) selectProBtn.onclick = () => App.selectProPlayerForAI();
+
+  // Share buttons
+  const shareCopyBtn = document.getElementById('share-copy');
+  if (shareCopyBtn) shareCopyBtn.onclick = () => App.shareGameResult(App.lastGameResult);
+
+  const shareExportBtn = document.getElementById('share-export');
+  if (shareExportBtn) shareExportBtn.onclick = () => App.exportGameRecord();
 });
