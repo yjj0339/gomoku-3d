@@ -3,7 +3,7 @@
  * Network-first strategy: always fetch fresh code, fallback to cache when offline
  */
 
-const CACHE_NAME = 'gomoku-3d-v9';
+const CACHE_NAME = 'gomoku-3d-v10';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -20,6 +20,8 @@ const STATIC_ASSETS = [
   './js/sound.js',
   './js/game-history.js',
   './js/network.js',
+  './js/pro-players.js',
+  './js/player-data.js',
   './js/app.js',
   './manifest.json'
 ];
