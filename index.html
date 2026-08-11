@@ -55,10 +55,20 @@
           <span class="btn-text">AI教学</span>
           <span class="btn-desc">学习提升</span>
         </button>
-        <button class="menu-btn" data-screen="history-screen">
-          <span class="btn-icon"> clock </span>
-          <span class="btn-text">棋谱回忆</span>
-          <span class="btn-desc">历史记录</span>
+        <button class="menu-btn" data-screen="pro-player-screen">
+          <span class="btn-icon">👑</span>
+          <span class="btn-text">职业棋手</span>
+          <span class="btn-desc">与传奇对战</span>
+        </button>
+        <button class="menu-btn" data-screen="achievements-screen">
+          <span class="btn-icon">🏆</span>
+          <span class="btn-text">成就系统</span>
+          <span class="btn-desc">解锁成就</span>
+        </button>
+        <button class="menu-btn" data-screen="stats-screen">
+          <span class="btn-icon">📊</span>
+          <span class="btn-text">数据统计</span>
+          <span class="btn-desc">战绩分析</span>
         </button>
       </div>
 
@@ -359,6 +369,81 @@
     </div>
   </div>
 
+  <!-- Pro Player Screen -->
+  <div id="pro-player-screen" class="screen">
+    <div class="setup-container">
+      <div class="setup-header">
+        <button class="back-btn" data-back="menu-screen">←</button>
+        <h2>职业棋手</h2>
+      </div>
+      <div class="setup-body">
+        <div class="daily-challenge" id="daily-challenge-banner">
+          <div class="daily-challenge-icon">🎯</div>
+          <div class="daily-challenge-text">今日挑战: <strong id="daily-challenge-text">赢一局人机对战</strong></div>
+        </div>
+        <div class="pro-player-grid" id="pro-player-grid">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Achievements Screen -->
+  <div id="achievements-screen" class="screen">
+    <div class="setup-container">
+      <div class="setup-header">
+        <button class="back-btn" data-back="menu-screen">←</button>
+        <h2>成就系统</h2>
+      </div>
+      <div class="setup-body">
+        <div class="achievement-summary">
+          <div class="stats-card">
+            <div class="stats-card-value" id="achievement-unlocked">0</div>
+            <div class="stats-card-label">已解锁</div>
+          </div>
+          <div class="stats-card">
+            <div class="stats-card-value" id="achievement-total">35</div>
+            <div class="stats-card-label">总成就</div>
+          </div>
+        </div>
+        <div class="achievement-list" id="achievement-list">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Screen -->
+  <div id="stats-screen" class="screen">
+    <div class="setup-container">
+      <div class="setup-header">
+        <button class="back-btn" data-back="menu-screen">←</button>
+        <h2>数据统计</h2>
+      </div>
+      <div class="setup-body">
+        <div class="stats-dashboard" id="stats-dashboard">
+          <div class="stats-card">
+            <div class="stats-card-value" id="stats-games">0</div>
+            <div class="stats-card-label">总对局</div>
+          </div>
+          <div class="stats-card">
+            <div class="stats-card-value" id="stats-wins">0</div>
+            <div class="stats-card-label">胜利</div>
+          </div>
+          <div class="stats-card">
+            <div class="stats-card-value" id="stats-winrate">0%</div>
+            <div class="stats-card-label">胜率</div>
+          </div>
+          <div class="stats-card">
+            <div class="stats-card-value" id="stats-elo">1500</div>
+            <div class="stats-card-label">等级分</div>
+          </div>
+          <div class="stats-chart" id="stats-chart">
+            <span class="placeholder-text">趋势图表</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Result Modal -->
   <div id="result-modal" class="modal">
     <div class="modal-content">
@@ -376,11 +461,71 @@
   <!-- Toast -->
   <div id="toast" class="toast"></div>
 
+  <!-- Pro Player Detail Modal -->
+  <div id="pro-player-modal" class="modal">
+    <div class="modal-content pro-detail">
+      <div class="modal-header">
+        <span class="modal-close" data-close="pro-player-modal">&times;</span>
+      </div>
+      <div class="pro-detail-body">
+        <div class="pro-detail-avatar" id="pro-detail-avatar"></div>
+        <div class="pro-detail-info">
+          <div class="pro-detail-name" id="pro-detail-name"></div>
+          <div class="pro-detail-meta">
+            <span id="pro-detail-nationality"></span>
+            <span class="pro-detail-elo" id="pro-detail-elo"></span>
+            <span class="pro-detail-style" id="pro-detail-style"></span>
+          </div>
+          <div class="pro-detail-quote" id="pro-detail-quote"></div>
+          <div class="pro-detail-achievements">
+            <h4>主要成就</h4>
+            <ul id="pro-detail-achievements"></ul>
+          </div>
+          <button class="btn primary" id="select-pro-btn">选择此棋手风格对战</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Share Modal -->
+  <div id="share-modal" class="modal">
+    <div class="modal-content share-modal">
+      <div class="modal-header">
+        <span class="modal-close" data-close="share-modal">&times;</span>
+        <h3>分享对局</h3>
+      </div>
+      <div class="share-options">
+        <button class="share-btn" id="share-copy">复制结果</button>
+        <button class="share-btn" id="share-export">导出棋谱</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Keyboard Shortcuts Modal -->
+  <div id="shortcuts-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span class="modal-close" data-close="shortcuts-modal">&times;</span>
+        <h3>键盘快捷键</h3>
+      </div>
+      <div class="shortcuts-list">
+        <div class="shortcut-row"><span class="key">U</span> <span>悔棋</span></div>
+        <div class="shortcut-row"><span class="key">R</span> <span>重新开始</span></div>
+        <div class="shortcut-row"><span class="key">H</span> <span>提示</span></div>
+        <div class="shortcut-row"><span class="key">ESC</span> <span>返回菜单</span></div>
+        <div class="shortcut-row"><span class="key">空格</span> <span>暂停/继续回放</span></div>
+        <div class="shortcut-row"><span class="key">←/→</span> <span>回放步进/步退</span></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Scripts -->
   <script src="./js/vendor/three.min.js"></script>
   <script src="./js/vendor/OrbitControls.js"></script>
   <script src="./js/vendor/peerjs.min.js"></script>
   <script src="./js/game-engine.js"></script>
+  <script src="./js/pro-players.js"></script>
+  <script src="./js/player-data.js"></script>
   <script src="./js/themes.js"></script>
   <script src="./js/render-engine.js"></script>
   <script src="./js/sound.js"></script>
